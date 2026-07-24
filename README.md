@@ -4,7 +4,7 @@ Describe an API in plain English; the agent generates a production-ready FastAPI
 
 ## How it works (Phase 1)
 
-A LangGraph agent runs three nodes:
+A LangGraph agent runs three nodes
 
 ```
 request → planner → backend → package → ZIP
