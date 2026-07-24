@@ -11,7 +11,7 @@ import re
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates" / "fastapi"
 
@@ -65,6 +65,9 @@ def _normalize_entity(entity: Any) -> dict:
 def _build_env() -> Environment:
     return Environment(
         loader=FileSystemLoader(str(_TEMPLATES_DIR)),
+        # Escapes only html/xml templates; this project emits none, but the
+        # default stays safe if one is ever added.
+        autoescape=select_autoescape(),
         undefined=StrictUndefined,
         keep_trailing_newline=True,
         trim_blocks=True,
