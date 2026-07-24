@@ -1,0 +1,12 @@
+# Code owners are automatically requested for review on every pull request
+# that touches files matching these patterns. Later rules override earlier ones.
+
+# Default owners for everything in the repo.
+* @Kamal2131 @techmkamal
+
+# The agent pipeline (graph, nodes, templates) is the core of the project —
+# keep the upstream owner on every change to it.
+/src/agents/ @Kamal2131 @techmkamal
+
+# CI and repo automation.
+/.github/ @Kamal2131
