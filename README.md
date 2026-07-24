@@ -74,7 +74,7 @@ then `ollama pull qwen2.5:3b`. See `.env.example` to point at a different endpoi
 ```bash
 curl -X POST http://localhost:8080/api/build \
   -H "Content-Type: application/json" \
-  -d '{"request": "Create a Book Management API with JWT auth, CRUD Books and Authors, PostgreSQL, Docker, and tests."}' \
+  -d '{"request": "Create a Book Management API with JWT auth, CRUD Books and Authors, PostgreSQL, Docker"}' \
   --output book-api.zip
 ```
 
