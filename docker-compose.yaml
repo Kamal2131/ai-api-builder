@@ -5,6 +5,9 @@ services:
       - "11434:11434"
     volumes:
       - ollama_models:/root/.ollama
+    environment:
+      # Keep the model resident — cold loads on this hardware exceed proxy timeouts.
+      - OLLAMA_KEEP_ALIVE=24h
     # GPU is optional; Qwen2.5-3B / Phi-3 run on CPU (slower). To use an NVIDIA GPU,
     # install the NVIDIA Container Toolkit and uncomment the block below.
     # deploy:
@@ -22,7 +25,7 @@ services:
     environment:
       - LLM_BASE_URL=http://ollama:11434/v1
       - LLM_API_KEY=ollama
-      - LLM_MODEL=${LLM_MODEL:-qwen2.5:3b}
+      - LLM_MODEL=${LLM_MODEL:-qwen2.5:1.5b}
       - LLM_TEMPERATURE=${LLM_TEMPERATURE:-0.1}
     depends_on:
       - ollama

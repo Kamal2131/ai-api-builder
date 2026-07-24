@@ -42,10 +42,14 @@ builder API) comes up with Docker Compose:
 ```bash
 docker compose up --build -d
 # One-time: pull the model into the Ollama container
-docker compose exec ollama ollama pull qwen2.5:3b   # or: phi3:3.8b
+docker compose exec ollama ollama pull qwen2.5:1.5b
 ```
 
 The API is then on http://localhost:8080 and reaches Ollama at `http://ollama:11434/v1`.
+
+**Model sizing:** `qwen2.5:1.5b` (~1 GB) runs inside a default ~3.5 GB Docker Desktop VM.
+`qwen2.5:3b` / `phi3:3.8b` need ~6–8 GB allocated to Docker — on smaller machines the model
+never finishes loading and requests stall. Set `LLM_MODEL` to switch.
 
 ## Run the API without Docker
 
