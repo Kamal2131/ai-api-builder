@@ -1,0 +1,26 @@
+# Dependabot keeps dependencies current via automated PRs.
+# Docs: https://docs.github.com/en/code-security/dependabot
+
+version: 2
+updates:
+  # Python packages (requirements.txt)
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: weekly
+    # One PR for all patch/minor bumps keeps the noise down; majors stay separate.
+    groups:
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # Actions used in .github/workflows
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Base images in the Dockerfile
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly

@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history — SonarCloud needs blame data for new-code detection.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -29,7 +32,19 @@ jobs:
       - name: Tests with coverage gate (pytest)
         # No LLM in CI — the planner falls back to heuristics, so the suite is hermetic.
         # The build fails if service-code coverage drops below 85%.
-        run: pytest --cov=src --cov-report=term-missing --cov-fail-under=85
+        # coverage.xml feeds the SonarCloud scan below.
+        run: pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-fail-under=85
+
+      - name: SonarCloud scan
+        # Needs the SONAR_TOKEN secret, which fork PRs don't receive — run only
+        # for pushes and same-repo PRs in the upstream repository.
+        if: >-
+          github.repository == 'Kamal2131/ai-api-builder' &&
+          (github.event_name == 'push' ||
+           github.event.pull_request.head.repo.full_name == github.repository)
+        uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   docker-build:
     runs-on: ubuntu-latest
