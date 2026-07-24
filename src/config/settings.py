@@ -11,6 +11,10 @@ class Settings:
     port: int = int(os.getenv("PORT", "8080"))
     root_path: str = os.getenv("ROOT_PATH", "")
 
+    # Build-history persistence (Phase 3). Empty means persistence is disabled —
+    # the API still builds projects, it just doesn't record them.
+    database_url: str = os.getenv("DATABASE_URL", "")
+
     # LLM — OpenAI-compatible endpoint. Defaults target a local Ollama server
     # (qwen2.5:1.5b). Ollama exposes an OpenAI-compatible API at /v1, so the same
     # ChatOpenAI client swaps to vLLM later by changing these env vars only.
