@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config.settings import settings
-from controllers import api_builder, health
+from controllers import api_builder, builds, health
 
 # pylint: enable=wrong-import-position
 
@@ -28,6 +28,7 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(api_builder.router)
+app.include_router(builds.router)
 
 
 if __name__ == "__main__":
