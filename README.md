@@ -81,6 +81,20 @@ curl -X POST http://localhost:8080/api/build \
 The LLM is optional for a first run: without a reachable endpoint the planner falls back to
 heuristics, so generation still works.
 
+## Build history (Phase 3 — Postgres)
+
+When `DATABASE_URL` is set, every build run is recorded — request, spec, attempts,
+status, error, and the ZIP itself (inline for now; moves to S3 later in Phase 3):
+
+- `GET /api/builds` — recent runs, newest first (503 when persistence is not configured)
+- `GET /api/builds/{id}/download` — re-download a past build's ZIP
+- `POST /api/build` responds with an `X-Build-Id` header when the run was recorded
+
+Persistence is opt-in and best-effort: without `DATABASE_URL`, or with the database
+down, builds keep working — they just aren't recorded. Docker Compose ships a
+`postgres:16` service wired in automatically; for bare local dev use SQLite
+(`DATABASE_URL=sqlite:///./builds.db`) or leave it empty.
+
 ## CI/CD
 
 `.github/workflows/ci.yml` runs on every push/PR: **ruff** lint → **pytest** (hermetic — no
@@ -95,6 +109,6 @@ venv/Scripts/pytest
 ## Roadmap
 
 - **Phase 1 (done):** single-agent templates-first generator → ZIP.
-- **Phase 2 (this):** split into planner → architecture → backend → database → testing → reviewer nodes.
-- **Phase 3:** AWS backing (vLLM on EC2 GPU, Postgres, Redis, S3).
+- **Phase 2 (done):** split into planner → architecture → backend → database → testing → reviewer nodes.
+- **Phase 3 (in progress):** AWS backing — Postgres build history ✔; vLLM on EC2 GPU, Redis, S3 next.
 - **Phase 4–7:** GitHub push, Docker verify, CI/CD generation, ECS deploy agent.

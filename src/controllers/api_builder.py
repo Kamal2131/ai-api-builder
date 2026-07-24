@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+import db
 from agents.api_builder_agent.graph import get_default_app
 
 router = APIRouter(prefix="/api/build", tags=["api-builder"])
@@ -33,19 +34,29 @@ class BuildRequest(BaseModel):
 
 @router.post("")
 def build(payload: BuildRequest) -> Response:
-    """Generate a FastAPI project from a plain-English description and return it as a ZIP."""
+    """Generate a FastAPI project from a plain-English description and return it as a ZIP.
+
+    Every run is recorded in the build history when a database is configured;
+    recording is best-effort and never blocks the build response.
+    """
     result = _app.invoke({"request": payload.request})
 
     if result.get("error"):
+        db.record_build(request=payload.request, spec=result.get("spec"),
+                        attempts=result.get("attempts", 1), status="failed",
+                        error=result["error"])
         raise HTTPException(status_code=422, detail=result["error"])
 
     zip_bytes = result.get("zip_bytes")
     if not zip_bytes:
         raise HTTPException(status_code=500, detail="Project generation produced no output.")
 
+    build_id = db.record_build(request=payload.request, spec=result.get("spec"),
+                               attempts=result.get("attempts", 1), status="success",
+                               zip_bytes=zip_bytes)
+
     project = result.get("spec", {}).get("project_name", "generated-api")
-    return Response(
-        content=zip_bytes,
-        media_type="application/zip",
-        headers={"Content-Disposition": f'attachment; filename="{project}.zip"'},
-    )
+    headers = {"Content-Disposition": f'attachment; filename="{project}.zip"'}
+    if build_id is not None:
+        headers["X-Build-Id"] = str(build_id)
+    return Response(content=zip_bytes, media_type="application/zip", headers=headers)
