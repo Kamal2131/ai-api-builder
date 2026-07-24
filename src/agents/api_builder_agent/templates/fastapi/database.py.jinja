@@ -1,0 +1,14 @@
+"""Database engine, session factory, and Base for {{ project_name }}."""
+
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+from app.config import settings
+
+{% if database == "sqlite" %}
+engine = create_engine(settings.database_url, connect_args={"check_same_thread": False})
+{% else %}
+engine = create_engine(settings.database_url, pool_pre_ping=True)
+{% endif %}
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()

@@ -1,0 +1,101 @@
+"""planner node — turns a plain-English API request into a structured build spec."""
+
+from __future__ import annotations
+
+import json
+import logging
+import re
+
+from agents.api_builder_agent.interpreter.prompts import build_planner_messages
+from agents.api_builder_agent.state import ApiBuilderAgentState
+from llm import get_llm
+
+logger = logging.getLogger(__name__)
+
+_DB_KEYWORDS = {
+    "postgres": ("postgres", "postgresql"),
+    "mysql": ("mysql",),
+    "sqlite": ("sqlite",),
+}
+_VALID_DATABASES = frozenset(_DB_KEYWORDS)
+
+
+def _slug(text: str) -> str:
+    """Kebab-case a free-text name into a safe project slug."""
+    slug = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+    return slug or "generated-api"
+
+
+def _parse_llm_json(content: str) -> dict | None:
+    """Extract the first JSON object from an LLM response, tolerating stray prose."""
+    match = re.search(r"\{.*\}", content, re.DOTALL)
+    if not match:
+        return None
+    try:
+        return json.loads(match.group(0))
+    except json.JSONDecodeError:
+        return None
+
+
+def _fallback_spec(request: str) -> dict:
+    """Deterministic spec when the LLM is unavailable or returns nothing usable."""
+    text = request.lower()
+
+    database = "postgres"
+    for name, keywords in _DB_KEYWORDS.items():
+        if any(keyword in text for keyword in keywords):
+            database = name
+            break
+
+    auth = "jwt" if ("jwt" in text or "auth" in text) else None
+
+    entities = []
+    for match in re.findall(r"crud\s+([a-zA-Z]+)", text):
+        singular = match[:-1] if match.endswith("s") else match
+        entities.append(singular.capitalize())
+    entities = list(dict.fromkeys(entities)) or ["Item"]
+
+    name_match = re.search(r"(?:create|build|generate)\s+(?:a|an)?\s*([a-zA-Z ]+?)\s+api", text)
+    project = name_match.group(1).strip() if name_match else "generated api"
+
+    return {
+        "project_name": _slug(f"{project} api"),
+        "database": database,
+        "auth": auth,
+        "entities": entities,
+    }
+
+
+def _normalize_spec(spec: dict, request: str) -> dict:
+    """Coerce a raw spec (LLM or fallback) into the shape the renderer expects."""
+    spec["project_name"] = _slug(str(spec.get("project_name") or "generated-api"))
+
+    database = str(spec.get("database") or "postgres").lower()
+    spec["database"] = database if database in _VALID_DATABASES else "postgres"
+
+    auth = spec.get("auth")
+    spec["auth"] = "jwt" if (isinstance(auth, str) and auth.lower() == "jwt") else None
+
+    entities = [str(e).strip() for e in (spec.get("entities") or []) if str(e).strip()]
+    spec["entities"] = entities or _fallback_spec(request)["entities"]
+    return spec
+
+
+def plan(state: ApiBuilderAgentState) -> dict:
+    """Produce the build spec from the request, preferring the LLM, falling back to heuristics."""
+    request = str(state.get("request", "")).strip()
+    if not request:
+        return {"error": "No API description provided.", "messages": ["planner: empty request"]}
+
+    spec = None
+    try:
+        response = get_llm().invoke(build_planner_messages(request))
+        spec = _parse_llm_json(getattr(response, "content", str(response)))
+    except Exception as exc:  # pylint: disable=broad-exception-caught
+        logger.warning("[api_builder.planner] LLM planning failed, using fallback: %s", exc)
+
+    if not spec or not spec.get("entities"):
+        spec = _fallback_spec(request)
+
+    spec = _normalize_spec(spec, request)
+    return {"spec": spec, "messages": [f"planner: {spec}"]}

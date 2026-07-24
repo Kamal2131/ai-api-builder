@@ -1,0 +1,38 @@
+"""Pydantic schemas for {{ project_name }}."""
+
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
+
+{% for e in entities %}
+
+class {{ e.name }}Base(BaseModel):
+    name: str
+    description: str | None = None
+
+
+class {{ e.name }}Create({{ e.name }}Base):
+    pass
+
+
+class {{ e.name }}Update({{ e.name }}Base):
+    pass
+
+
+class {{ e.name }}Read({{ e.name }}Base):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    created_at: datetime | None = None
+{% endfor %}
+{% if use_jwt %}
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+{% endif %}

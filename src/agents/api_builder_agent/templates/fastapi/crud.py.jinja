@@ -1,0 +1,43 @@
+"""CRUD operations for {{ project_name }}."""
+
+from sqlalchemy.orm import Session
+
+from app import models, schemas
+
+{% for e in entities %}
+
+def get_{{ e.snake }}(db: Session, item_id: int):
+    return db.query(models.{{ e.name }}).filter(models.{{ e.name }}.id == item_id).first()
+
+
+def list_{{ e.plural }}(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.{{ e.name }}).offset(skip).limit(limit).all()
+
+
+def create_{{ e.snake }}(db: Session, payload: schemas.{{ e.name }}Create):
+    obj = models.{{ e.name }}(**payload.model_dump())
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+def update_{{ e.snake }}(db: Session, item_id: int, payload: schemas.{{ e.name }}Update):
+    obj = get_{{ e.snake }}(db, item_id)
+    if obj is None:
+        return None
+    for key, value in payload.model_dump().items():
+        setattr(obj, key, value)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+def delete_{{ e.snake }}(db: Session, item_id: int):
+    obj = get_{{ e.snake }}(db, item_id)
+    if obj is None:
+        return None
+    db.delete(obj)
+    db.commit()
+    return obj
+{% endfor %}

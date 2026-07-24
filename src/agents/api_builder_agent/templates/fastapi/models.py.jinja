@@ -1,0 +1,25 @@
+"""SQLAlchemy models for {{ project_name }}."""
+
+from sqlalchemy import Column, DateTime, Integer, String, func
+
+from app.database import Base
+
+{% for e in entities %}
+
+class {{ e.name }}(Base):
+    __tablename__ = "{{ e.table }}"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True, nullable=False)
+    description = Column(String, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+{% endfor %}
+{% if use_jwt %}
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+{% endif %}

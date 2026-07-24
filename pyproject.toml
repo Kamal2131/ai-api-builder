@@ -1,0 +1,22 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "-p", "no:cacheprovider",
+]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]
+# Jinja templates are not Python — never lint them.
+extend-exclude = ["src/agents/api_builder_agent/templates"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+# server.py imports after load_dotenv() on purpose, so env is set before app modules load.
+"src/server.py" = ["E402"]

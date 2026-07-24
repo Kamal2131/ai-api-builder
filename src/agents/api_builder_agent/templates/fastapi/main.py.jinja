@@ -1,0 +1,27 @@
+"""{{ project_name }} — generated FastAPI application."""
+
+from fastapi import FastAPI
+
+from app.database import Base, engine
+{% for e in entities %}
+from app.routers import {{ e.snake }}
+{% endfor %}
+{% if use_jwt %}
+from app import auth
+{% endif %}
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="{{ project_name }}")
+
+{% if use_jwt %}
+app.include_router(auth.router)
+{% endif %}
+{% for e in entities %}
+app.include_router({{ e.snake }}.router)
+{% endfor %}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
