@@ -2,34 +2,41 @@
 
 Describe an API in plain English; the agent generates a production-ready FastAPI project and returns it as a downloadable ZIP.
 
-## How it works (Phase 1)
+## How it works (Phase 2)
 
-A LangGraph agent runs three nodes
+A LangGraph agent runs a specialized pipeline
 
 ```
-request → planner → backend → package → ZIP
+request → planner → architecture → backend → database → testing → reviewer → package → ZIP
+                ↑ ______________________ retry with feedback ______________ ↓
 ```
 
 - **planner** (`nodes/planner.py`) parses the request into a build spec `{project_name, database, auth, entities}` using the LLM, with a deterministic regex fallback when no LLM is reachable.
-- **backend** (`nodes/backend.py`) renders a working FastAPI project from Jinja templates in `agents/api_builder_agent/templates/fastapi/` (templates-first — deterministic, always-valid Python).
+- **architecture** (`nodes/architecture.py`) normalizes the spec into the shared render context and lays down the project skeleton (README, Dockerfile, docker-compose, requirements, dotfiles).
+- **backend** (`nodes/backend.py`) renders the application code — core app modules, one router per entity, auth when JWT is requested.
+- **database** (`nodes/database.py`) renders the persistence layer (engine/session setup, SQLAlchemy models).
+- **testing** (`nodes/testing.py`) renders the generated project's test suite.
+- **reviewer** (`nodes/reviewer.py`) validates the result — required files, every entity wired end-to-end (model → schemas → router → mounted in main), matching DB driver, every `.py` parses. On failure it loops back to the planner with its problem report so the spec can be corrected (one retry); only after that does it fail the build.
 - **package** (`nodes/package.py`) zips the file map.
+
+All rendering is templates-first from Jinja templates in `agents/api_builder_agent/templates/fastapi/` — deterministic, always-valid Python.
 
 ## Project layout
 
 ```
 src/
 ├── server.py                     # FastAPI entry point
-├── llm.py                        # OpenAI-compatible LLM accessor (Ollama / vLLM, Qwen2.5-3B)
+├── llm.py                        # OpenAI-compatible LLM accessor (Ollama / vLLM, qwen2.5:1.5b)
 ├── config/settings.py
 ├── controllers/
 │   ├── health.py
 │   └── api_builder.py            # POST /api/build → ZIP
 └── agents/api_builder_agent/
-    ├── graph.py                  # planner → backend → package
+    ├── graph.py                  # planner → architecture → backend → database → testing → reviewer → package
     ├── state.py
     ├── interpreter/prompts.py
     ├── generators/renderer.py
-    ├── nodes/{planner,backend,package}.py
+    ├── nodes/{planner,architecture,backend,database,testing,reviewer,package}.py
     └── templates/fastapi/*.jinja
 tests/
 ```
@@ -87,7 +94,7 @@ venv/Scripts/pytest
 
 ## Roadmap
 
-- **Phase 1 (this):** single-agent templates-first generator → ZIP.
-- **Phase 2:** split into planner → architecture → backend → database → testing → reviewer nodes.
+- **Phase 1 (done):** single-agent templates-first generator → ZIP.
+- **Phase 2 (this):** split into planner → architecture → backend → database → testing → reviewer nodes.
 - **Phase 3:** AWS backing (vLLM on EC2 GPU, Postgres, Redis, S3).
 - **Phase 4–7:** GitHub push, Docker verify, CI/CD generation, ECS deploy agent.
