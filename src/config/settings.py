@@ -8,6 +8,9 @@ import os
 class Settings:
     """Runtime configuration for the AI API Builder service."""
 
+    # Loopback by default — binding all interfaces is opt-in (Docker sets its
+    # own 0.0.0.0 via the uvicorn CLI, where the container boundary protects it).
+    host: str = os.getenv("HOST", "127.0.0.1")
     port: int = int(os.getenv("PORT", "8080"))
     root_path: str = os.getenv("ROOT_PATH", "")
 

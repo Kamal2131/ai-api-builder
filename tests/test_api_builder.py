@@ -90,7 +90,7 @@ def test_reviewer_fails_for_good_once_attempts_are_exhausted():
     files = render_project(BOOK_SPEC)
     files["app/main.py"] = files["app/main.py"].replace("app.include_router(book.router)\n", "")
     files["app/models.py"] = files["app/models.py"].replace("class Author(Base)", "class Writer(Base)")
-    files["requirements.txt"] = files["requirements.txt"].replace("psycopg[binary]>=3.1\n", "")
+    files["requirements.txt"] = files["requirements.txt"].replace("psycopg[binary]==3.3.4\n", "")
 
     result = review({"files": files, "context": ctx, "attempts": 2})
     assert "router for Book not mounted" in result["error"]

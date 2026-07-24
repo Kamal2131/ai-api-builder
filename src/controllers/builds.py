@@ -11,7 +11,9 @@ import db
 router = APIRouter(prefix="/api/builds", tags=["builds"])
 
 
-@router.get("")
+@router.get("", responses={
+    503: {"description": "Build history is disabled — no DATABASE_URL configured."},
+})
 def history(limit: int = 50) -> list[dict]:
     """Recent build runs, newest first, without ZIP payloads."""
     builds = db.list_builds(limit=limit)
@@ -20,7 +22,9 @@ def history(limit: int = 50) -> list[dict]:
     return builds
 
 
-@router.get("/{build_id}/download")
+@router.get("/{build_id}/download", responses={
+    404: {"description": "Unknown build id, or the build has no stored ZIP."},
+})
 def download(build_id: int) -> Response:
     """Re-download the ZIP of a previously successful build."""
     stored = db.get_build_zip(build_id)

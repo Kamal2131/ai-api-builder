@@ -14,8 +14,9 @@ from agents.api_builder_agent.state import ApiBuilderAgentState
 # Total build attempts (first try + retries with reviewer feedback) before giving up.
 _MAX_BUILD_ATTEMPTS = 2
 
+_MAIN_PY = "app/main.py"
 _REQUIRED_FILES = (
-    "app/main.py",
+    _MAIN_PY,
     "app/models.py",
     "app/schemas.py",
     "app/crud.py",
@@ -40,8 +41,8 @@ def _entity_problems(files: dict[str, str], entity: dict) -> list[str]:
     schemas = files.get("app/schemas.py", "")
     if f"class {name}Create" not in schemas or f"class {name}Read" not in schemas:
         problems.append(f"incomplete schemas for {name} in app/schemas.py")
-    if f"include_router({snake}.router)" not in files.get("app/main.py", ""):
-        problems.append(f"router for {name} not mounted in app/main.py")
+    if f"include_router({snake}.router)" not in files.get(_MAIN_PY, ""):
+        problems.append(f"router for {name} not mounted in {_MAIN_PY}")
 
     return problems
 
@@ -57,8 +58,8 @@ def _wiring_problems(files: dict[str, str], context: dict) -> list[str]:
     if context.get("use_jwt"):
         if "app/auth.py" not in files:
             problems.append("missing app/auth.py (JWT requested)")
-        elif "include_router(auth.router)" not in files.get("app/main.py", ""):
-            problems.append("auth router not mounted in app/main.py")
+        elif "include_router(auth.router)" not in files.get(_MAIN_PY, ""):
+            problems.append(f"auth router not mounted in {_MAIN_PY}")
 
     return problems
 
