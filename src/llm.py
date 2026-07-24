@@ -1,6 +1,6 @@
 """Process-wide LLM accessor — an OpenAI-compatible chat model built lazily on first use.
 
-Defaults target a local Ollama server (Qwen2.5-3B) via its OpenAI-compatible /v1 API.
+Defaults target a local Ollama server (qwen2.5:1.5b) via its OpenAI-compatible /v1 API.
 Any OpenAI-compatible endpoint (Ollama, vLLM, ...) works by setting LLM_BASE_URL /
 LLM_API_KEY / LLM_MODEL in the environment.
 """
@@ -22,7 +22,7 @@ def _build_llm() -> Any:
 
     return ChatOpenAI(
         base_url=settings.llm_base_url,
-        api_key=settings.llm_api_key,
+        api_key=lambda: settings.llm_api_key,
         model=settings.llm_model,
         temperature=settings.llm_temperature,
     )

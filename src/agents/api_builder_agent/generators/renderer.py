@@ -1,4 +1,9 @@
-"""Templates-first FastAPI project renderer — turns a planner spec into a {path: content} file map."""
+"""Templates-first FastAPI project renderer — turns a planner spec into {path: content} maps.
+
+Phase 2 splits rendering across specialized nodes, so templates are grouped by
+responsibility (scaffold / backend / database / testing) and each group renders
+independently from the shared build context.
+"""
 
 from __future__ import annotations
 
@@ -10,21 +15,27 @@ from jinja2 import Environment, FileSystemLoader, StrictUndefined
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates" / "fastapi"
 
-# Global templates rendered once: template filename -> output path in the generated project.
-_GLOBAL_TEMPLATES = {
-    "main.py.jinja": "app/main.py",
-    "config.py.jinja": "app/config.py",
-    "database.py.jinja": "app/database.py",
-    "deps.py.jinja": "app/deps.py",
-    "models.py.jinja": "app/models.py",
-    "schemas.py.jinja": "app/schemas.py",
-    "crud.py.jinja": "app/crud.py",
+# Template filename -> output path, grouped by the node responsible for rendering it.
+_SCAFFOLD_TEMPLATES = {
     "requirements.txt.jinja": "requirements.txt",
     "Dockerfile.jinja": "Dockerfile",
     "docker-compose.yml.jinja": "docker-compose.yml",
     "env.example.jinja": ".env.example",
     "gitignore.jinja": ".gitignore",
     "README.md.jinja": "README.md",
+}
+_BACKEND_TEMPLATES = {
+    "main.py.jinja": "app/main.py",
+    "config.py.jinja": "app/config.py",
+    "deps.py.jinja": "app/deps.py",
+    "schemas.py.jinja": "app/schemas.py",
+    "crud.py.jinja": "app/crud.py",
+}
+_DATABASE_TEMPLATES = {
+    "database.py.jinja": "app/database.py",
+    "models.py.jinja": "app/models.py",
+}
+_TESTING_TEMPLATES = {
     "test_crud.py.jinja": "tests/test_crud.py",
 }
 _ROUTER_TEMPLATE = "router.py.jinja"          # rendered once per entity
@@ -61,12 +72,10 @@ def _build_env() -> Environment:
     )
 
 
-def render_project(spec: dict) -> dict[str, str]:
-    """Render every project file from the build spec and return a {path: content} map."""
-    env = _build_env()
+def build_context(spec: dict) -> dict:
+    """Build the shared template context every render group consumes."""
     entities = [_normalize_entity(e) for e in spec.get("entities", [])] or [_normalize_entity("Item")]
-
-    ctx = {
+    return {
         "project_name": spec.get("project_name", "generated-api"),
         "database": spec.get("database", "postgres"),
         "auth": spec.get("auth"),
@@ -74,19 +83,51 @@ def render_project(spec: dict) -> dict[str, str]:
         "entities": entities,
     }
 
-    files: dict[str, str] = {}
-    for template_name, out_path in _GLOBAL_TEMPLATES.items():
-        files[out_path] = env.get_template(template_name).render(**ctx)
 
+def _render_templates(templates: dict[str, str], ctx: dict) -> dict[str, str]:
+    env = _build_env()
+    return {out_path: env.get_template(name).render(**ctx) for name, out_path in templates.items()}
+
+
+def render_scaffold(ctx: dict) -> dict[str, str]:
+    """Project skeleton: infra/config files plus empty package markers."""
+    files = _render_templates(_SCAFFOLD_TEMPLATES, ctx)
+    for pkg in _PACKAGE_DIRS:
+        files[f"{pkg}/__init__.py"] = ""
+    return files
+
+
+def render_backend(ctx: dict) -> dict[str, str]:
+    """Application code: core app modules, one router per entity, auth when JWT."""
+    files = _render_templates(_BACKEND_TEMPLATES, ctx)
+
+    env = _build_env()
     router_tpl = env.get_template(_ROUTER_TEMPLATE)
-    for entity in entities:
+    for entity in ctx["entities"]:
         files[f"app/routers/{entity['snake']}.py"] = router_tpl.render(entity=entity, **ctx)
 
     if ctx["use_jwt"]:
         tpl_name, out_path = _AUTH_TEMPLATE
         files[out_path] = env.get_template(tpl_name).render(**ctx)
-
-    for pkg in _PACKAGE_DIRS:
-        files.setdefault(f"{pkg}/__init__.py", "")
-
     return files
+
+
+def render_database(ctx: dict) -> dict[str, str]:
+    """Persistence layer: engine/session setup and SQLAlchemy models."""
+    return _render_templates(_DATABASE_TEMPLATES, ctx)
+
+
+def render_tests(ctx: dict) -> dict[str, str]:
+    """Test suite for the generated project."""
+    return _render_templates(_TESTING_TEMPLATES, ctx)
+
+
+def render_project(spec: dict) -> dict[str, str]:
+    """Render the complete project in one call — the composition of all render groups."""
+    ctx = build_context(spec)
+    return {
+        **render_scaffold(ctx),
+        **render_backend(ctx),
+        **render_database(ctx),
+        **render_tests(ctx),
+    }

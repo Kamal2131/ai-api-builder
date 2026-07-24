@@ -19,6 +19,9 @@ _DB_KEYWORDS = {
 }
 _VALID_DATABASES = frozenset(_DB_KEYWORDS)
 
+# Feature/infra words small models sometimes emit as entities despite the prompt.
+_NON_ENTITY_WORDS = frozenset({"auth", "jwt", "api", "crud", "docker", "test", "tests", "database"})
+
 
 def _slug(text: str) -> str:
     """Kebab-case a free-text name into a safe project slug."""
@@ -27,14 +30,22 @@ def _slug(text: str) -> str:
 
 
 def _parse_llm_json(content: str) -> dict | None:
-    """Extract the first JSON object from an LLM response, tolerating stray prose."""
-    match = re.search(r"\{.*\}", content, re.DOTALL)
-    if not match:
-        return None
-    try:
-        return json.loads(match.group(0))
-    except json.JSONDecodeError:
-        return None
+    """Extract a JSON object from an LLM response, tolerating code fences and stray prose."""
+    stripped = re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip())
+    candidates = [stripped]
+
+    match = re.search(r"\{.*\}", stripped, re.DOTALL)
+    if match:
+        candidates.append(match.group(0))
+
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
 
 
 def _fallback_spec(request: str) -> dict:
@@ -77,19 +88,29 @@ def _normalize_spec(spec: dict, request: str) -> dict:
     spec["auth"] = "jwt" if (isinstance(auth, str) and auth.lower() == "jwt") else None
 
     entities = [str(e).strip() for e in (spec.get("entities") or []) if str(e).strip()]
+    entities = [e for e in dict.fromkeys(entities) if e.lower() not in _NON_ENTITY_WORDS]
     spec["entities"] = entities or _fallback_spec(request)["entities"]
     return spec
 
 
 def plan(state: ApiBuilderAgentState) -> dict:
-    """Produce the build spec from the request, preferring the LLM, falling back to heuristics."""
+    """Produce the build spec from the request, preferring the LLM, falling back to heuristics.
+
+    On a retry the reviewer's problem report and the previous spec are included in
+    the prompt so the LLM can correct the spec instead of repeating the same mistake.
+    """
     request = str(state.get("request", "")).strip()
     if not request:
         return {"error": "No API description provided.", "messages": ["planner: empty request"]}
 
+    attempts = state.get("attempts", 0) + 1
+    feedback = state.get("review_feedback")
+
     spec = None
     try:
-        response = get_llm().invoke(build_planner_messages(request))
+        messages = build_planner_messages(request, feedback=feedback,
+                                          previous_spec=state.get("spec"))
+        response = get_llm().invoke(messages)
         spec = _parse_llm_json(getattr(response, "content", str(response)))
     except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.warning("[api_builder.planner] LLM planning failed, using fallback: %s", exc)
@@ -98,4 +119,9 @@ def plan(state: ApiBuilderAgentState) -> dict:
         spec = _fallback_spec(request)
 
     spec = _normalize_spec(spec, request)
-    return {"spec": spec, "messages": [f"planner: {spec}"]}
+    return {
+        "spec": spec,
+        "attempts": attempts,
+        "review_feedback": None,  # consumed — a stale report must not leak into the next review
+        "messages": [f"planner (attempt {attempts}): {spec}"],
+    }
