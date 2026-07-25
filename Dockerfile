@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # Dedicated non-root user — the app never needs root at runtime.
 RUN useradd --create-home --shell /usr/sbin/nologin appuser
