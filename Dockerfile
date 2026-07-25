@@ -6,8 +6,9 @@ RUN useradd --create-home --shell /usr/sbin/nologin appuser
 WORKDIR /app
 
 COPY requirements.txt .
-# --only-binary :all: forbids sdists, so no setup.py ever executes in the image.
-RUN pip install --no-cache-dir --only-binary :all: -r requirements.txt
+# The lock is fully hash-pinned (pip-compile --generate-hashes): every package,
+# including transitives, must match a known hash, and no sdist setup.py runs.
+RUN pip install --no-cache-dir --only-binary :all: --require-hashes -r requirements.txt
 
 COPY src ./src
 
