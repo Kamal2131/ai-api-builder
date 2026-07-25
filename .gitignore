@@ -5,6 +5,7 @@ venv/
 .env
 .pytest_cache/
 .coverage
+builds.db
 
 # Generated projects output
 generated_projects/

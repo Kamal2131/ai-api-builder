@@ -52,6 +52,15 @@ services:
       - DATABASE_URL=postgresql+psycopg://postgres:postgres@db:5432/builder
       - REDIS_URL=redis://cache:6379/0
       - BUILD_CACHE_TTL=${BUILD_CACHE_TTL:-3600}
+      # S3 offload — values come from .env; empty means inline storage.
+      - S3_BUCKET=${S3_BUCKET:-}
+      - AWS_PROFILE=${AWS_PROFILE:-}
+      - AWS_REGION=${AWS_REGION:-}
+    volumes:
+      # Host AWS config/credentials so the container can use the host's
+      # `aws login` session. Must be writable — the credential provider
+      # refreshes session tokens in ~/.aws/login/cache.
+      - ${USERPROFILE:-~}/.aws:/home/appuser/.aws
     depends_on:
       ollama:
         condition: service_started

@@ -23,6 +23,11 @@ class Settings:
     redis_url: str = os.getenv("REDIS_URL", "")
     build_cache_ttl: int = int(os.getenv("BUILD_CACHE_TTL", "3600"))
 
+    # ZIP offload to S3 (Phase 3). Empty bucket keeps ZIPs inline in the
+    # database. Endpoint override targets MinIO/LocalStack in local dev.
+    s3_bucket: str = os.getenv("S3_BUCKET", "")
+    s3_endpoint_url: str = os.getenv("S3_ENDPOINT_URL", "")
+
     # LLM — OpenAI-compatible endpoint. Defaults target a local Ollama server
     # (qwen2.5:1.5b). Ollama exposes an OpenAI-compatible API at /v1, so the same
     # ChatOpenAI client swaps to vLLM later by changing these env vars only.
