@@ -31,7 +31,10 @@ def _slug(text: str) -> str:
 
 def _parse_llm_json(content: str) -> dict | None:
     """Extract a JSON object from an LLM response, tolerating code fences and stray prose."""
-    stripped = re.sub(r"^```(?:json)?\s*|\s*```$", "", content.strip())
+    stripped = content.strip()
+    if stripped.startswith("```"):
+        stripped = stripped.removeprefix("```json").removeprefix("```")
+        stripped = stripped.removesuffix("```").strip()
     candidates = [stripped]
 
     match = re.search(r"\{.*\}", stripped, re.DOTALL)
@@ -66,7 +69,10 @@ def _fallback_spec(request: str) -> dict:
         entities.append(singular.capitalize())
     entities = list(dict.fromkeys(entities)) or ["Item"]
 
-    name_match = re.search(r"(?:create|build|generate)\s+(?:a|an)?\s*([a-zA-Z ]+?)\s+api", text)
+    # Words are matched as unambiguous [a-z]+ tokens with single separators so the
+    # regex can't backtrack super-linearly (text is already lowercased).
+    name_match = re.search(r"(?:create|build|generate)\s+(?:an?\s+)?([a-z]+(?:\s+[a-z]+)*?)\s+api\b",
+                           text)
     project = name_match.group(1).strip() if name_match else "generated api"
 
     return {

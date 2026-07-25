@@ -33,7 +33,10 @@ class BuildRequest(BaseModel):
     }
 
 
-@router.post("")
+@router.post("", responses={
+    422: {"description": "Generation failed — empty request or the project failed review."},
+    500: {"description": "Generation finished but produced no ZIP output."},
+})
 def build(payload: BuildRequest) -> Response:
     """Generate a FastAPI project from a plain-English description and return it as a ZIP.
 

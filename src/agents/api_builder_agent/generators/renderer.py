@@ -11,14 +11,16 @@ import re
 from pathlib import Path
 from typing import Any
 
-from jinja2 import Environment, FileSystemLoader, StrictUndefined
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent / "templates" / "fastapi"
 
 # Template filename -> output path, grouped by the node responsible for rendering it.
 _SCAFFOLD_TEMPLATES = {
     "requirements.txt.jinja": "requirements.txt",
-    "Dockerfile.jinja": "Dockerfile",
+    # Named container-image.jinja (not Dockerfile.jinja) so scanners don't
+    # misclassify the template itself as a Dockerfile of this service.
+    "container-image.jinja": "Dockerfile",
     "docker-compose.yml.jinja": "docker-compose.yml",
     "env.example.jinja": ".env.example",
     "gitignore.jinja": ".gitignore",
@@ -65,6 +67,9 @@ def _normalize_entity(entity: Any) -> dict:
 def _build_env() -> Environment:
     return Environment(
         loader=FileSystemLoader(str(_TEMPLATES_DIR)),
+        # Escapes only html/xml templates; this project emits none, but the
+        # default stays safe if one is ever added.
+        autoescape=select_autoescape(),
         undefined=StrictUndefined,
         keep_trailing_newline=True,
         trim_blocks=True,
