@@ -17,7 +17,7 @@ test:
 	$(BIN)/pytest
 
 # Regenerate the hash-locked requirements.txt from requirements.in.
-# Runs inside python:3.12-slim so the lock matches the Docker/CI environment.
+# Runs inside python:3.14-slim so the lock matches the Docker/CI environment.
 lock:
-	docker run --rm -v "$(CURDIR):/work" -w /work python:3.12-slim \
+	docker run --rm -v "$(CURDIR):/work" -w /work python:3.14-slim \
 		sh -c "pip install --quiet pip-tools && pip-compile --generate-hashes --output-file=requirements.txt requirements.in"

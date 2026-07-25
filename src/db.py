@@ -5,7 +5,8 @@ unreachable — the API keeps building projects and simply skips recording,
 mirroring the planner's LLM-fallback philosophy. A failed connection is retried
 on the next call rather than disabling persistence for the process lifetime.
 
-ZIP bytes are stored inline for now; they move to S3 later in Phase 3.
+ZIP bytes are offloaded to S3 when a bucket is configured (see storage.py) and
+stored inline otherwise, so either backend can serve re-downloads.
 """
 
 from __future__ import annotations
@@ -14,9 +15,20 @@ import json
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Integer, LargeBinary, String, Text, create_engine, select
+from sqlalchemy import (
+    DateTime,
+    Integer,
+    LargeBinary,
+    String,
+    Text,
+    create_engine,
+    inspect,
+    select,
+    text,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
+import storage
 from config.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -45,6 +57,15 @@ class BuildRecord(Base):
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     zip_size: Mapped[int] = mapped_column(Integer, default=0)
     zip_bytes: Mapped[bytes | None] = mapped_column(LargeBinary, nullable=True)
+    zip_key: Mapped[str | None] = mapped_column(String(300), nullable=True)  # S3 object key
+
+
+def _ensure_schema(engine) -> None:
+    """Add columns create_all can't: it only creates missing tables, never alters them."""
+    columns = {c["name"] for c in inspect(engine).get_columns("builds")}
+    if "zip_key" not in columns:
+        with engine.begin() as conn:
+            conn.execute(text("ALTER TABLE builds ADD COLUMN zip_key VARCHAR(300)"))
 
 
 def _get_session_factory():
@@ -64,6 +85,7 @@ def _get_session_factory():
         engine = create_engine(settings.database_url, pool_pre_ping=True,
                                connect_args=connect_args)
         Base.metadata.create_all(engine)
+        _ensure_schema(engine)
         _session_factory = sessionmaker(bind=engine)
     except Exception as exc:  # pylint: disable=broad-exception-caught
         logger.warning("[db] database unavailable, build not recorded: %s", exc)
@@ -78,17 +100,21 @@ def record_build(*, request: str, spec: dict | None, attempts: int, status: str,
     if factory is None:
         return None
 
+    project_name = (spec or {}).get("project_name", "generated-api")
+    zip_key = storage.store_zip(project_name, zip_bytes) if zip_bytes else None
+
     try:
         with factory() as session:
             record = BuildRecord(
                 request=request,
-                project_name=(spec or {}).get("project_name", "generated-api"),
+                project_name=project_name,
                 spec=json.dumps(spec or {}),
                 attempts=attempts,
                 status=status,
                 error=error,
                 zip_size=len(zip_bytes) if zip_bytes else 0,
-                zip_bytes=zip_bytes,
+                zip_bytes=None if zip_key else zip_bytes,  # offloaded ZIPs live in S3 only
+                zip_key=zip_key,
             )
             session.add(record)
             session.commit()
@@ -119,6 +145,7 @@ def list_builds(limit: int = 50) -> list[dict] | None:
                 "status": r.status,
                 "error": r.error,
                 "zip_size": r.zip_size,
+                "storage": "s3" if r.zip_key else ("inline" if r.zip_bytes else None),
             }
             for r in records
         ]
@@ -132,6 +159,11 @@ def get_build_zip(build_id: int) -> tuple[str, bytes] | None:
 
     with factory() as session:
         record = session.get(BuildRecord, build_id)
-        if record is None or not record.zip_bytes:
+        if record is None:
             return None
-        return record.project_name, record.zip_bytes
+        if record.zip_key:
+            zip_bytes = storage.fetch_zip(record.zip_key)
+            return (record.project_name, zip_bytes) if zip_bytes else None
+        if record.zip_bytes:
+            return record.project_name, record.zip_bytes
+        return None

@@ -99,6 +99,16 @@ down, builds keep working — they just aren't recorded. Docker Compose ships a
 `postgres:16` service wired in automatically; for bare local dev use SQLite
 (`DATABASE_URL=sqlite:///./builds.db`) or leave it empty.
 
+## ZIP storage (Phase 3 — S3)
+
+When `S3_BUCKET` is set, build ZIPs are uploaded to S3 (`builds/<uuid>/<project>.zip`)
+and only the object key is kept in the build-history database; re-downloads fetch
+from S3 transparently. Credentials/region come from the standard AWS environment,
+and `S3_ENDPOINT_URL` points at MinIO/LocalStack for local dev. Same opt-in,
+best-effort rules as everything else: no bucket, or an upload failure, and the ZIP
+simply stays inline in the database. Existing `builds` tables are migrated
+automatically (a `zip_key` column is added on startup).
+
 ## Build cache (Phase 3 — Redis)
 
 When `REDIS_URL` is set, a successful build is cached keyed on the (normalized)
@@ -123,5 +133,5 @@ venv/Scripts/pytest
 
 - **Phase 1 (done):** single-agent templates-first generator → ZIP.
 - **Phase 2 (done):** split into planner → architecture → backend → database → testing → reviewer nodes.
-- **Phase 3 (in progress):** AWS backing — Postgres build history ✔, Redis build cache ✔; vLLM on EC2 GPU, S3 next.
+- **Phase 3 (in progress):** AWS backing — Postgres build history ✔, Redis build cache ✔, S3 ZIP storage ✔; vLLM on EC2 GPU next.
 - **Phase 4–7:** GitHub push, Docker verify, CI/CD generation, ECS deploy agent.

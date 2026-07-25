@@ -13,6 +13,11 @@ psycopg[binary]==3.3.4
 # Build-result cache (Phase 3)
 redis==8.0.1
 
+# ZIP offload to S3 (Phase 3). The crt extra is required by the credential
+# provider that consumes `aws login` browser-session credentials.
+boto3==1.43.56
+botocore[crt]==1.43.56
+
 # AI agent
 langgraph==1.2.9
 langchain-core==1.5.1
@@ -24,3 +29,4 @@ pytest==9.1.1
 pytest-cov==7.1.0
 httpx==0.28.1
 fakeredis==2.37.0
+moto[s3]==5.2.2
