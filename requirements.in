@@ -1,7 +1,7 @@
 # Direct dependencies — edit this file, then regenerate the hash-locked
 # requirements.txt with: make lock  (pip-compile inside python:3.12-slim)
 
-fastapi[standard]==0.139.2
+fastapi[standard]==0.140.7
 uvicorn==0.51.0
 python-dotenv==1.2.2
 jinja2==3.1.6
@@ -16,7 +16,7 @@ redis==8.0.1
 # ZIP offload to S3 (Phase 3). The crt extra is required by the credential
 # provider that consumes `aws login` browser-session credentials.
 boto3==1.43.56
-botocore[crt]==1.43.56
+botocore[crt]==1.43.57
 
 # AI agent
 langgraph==1.2.9
