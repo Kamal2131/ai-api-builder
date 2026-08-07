@@ -73,15 +73,15 @@ awscrt==0.36.0 \
     --hash=sha256:edc9814c5ddf4b49e9b4dc5f424b7172afc07a2f7b655338a25d6c87620d2b89 \
     --hash=sha256:ef8e655ffaf245a2d4a5c6ca9a1da12fe72cf43c70457dd07f6e0b162ffed164
     # via botocore
-boto3==1.43.56 \
-    --hash=sha256:57c90df9fb026f2e6ae22530861198130203733c5c9ec4e5cca3a4037f5a8db4 \
-    --hash=sha256:feb699d4ab241ef5c1b80bb58277be2aaad365cd4b672d7817e0bc59ee45131b
+boto3==1.43.57 \
+    --hash=sha256:115ed9cac409d9b57e2437b52fdb4286660d12a2bd44a0f48d530e68623d09a7 \
+    --hash=sha256:549c95e45f9b04cf0c69727632dbdda23b84dcd3d0ed7981c6aaff72ef9cb5af
     # via
     #   -r requirements.in
     #   moto
-botocore[crt]==1.43.57 \
-    --hash=sha256:001a5653bebc03b862bde2da63bad4adb0b30072a3f247aba4daae5aa097b546 \
-    --hash=sha256:319c6d79f66c3f3f2b538f7dcdc90e410a15a7bfced1db06479134947e629482
+botocore[crt]==1.43.63 \
+    --hash=sha256:854e45247f00b0732496ea1f0c5d0cf3c31d58b48eb052c31c27ab1087dfddf1 \
+    --hash=sha256:8deed86feacc8f8d2491f1d170562af191f8b33924052d834f4217d5d797e5a9
     # via
     #   -r requirements.in
     #   boto3
@@ -463,9 +463,9 @@ fakeredis==2.37.0 \
     --hash=sha256:657a2a695a1123be0c13f98db409371497bd94c29d260dd76a9fc7ce1a633745 \
     --hash=sha256:7461f124dcba04a80691d72270b3d1d5cd100ef14dc068c76db825940f3ed799
     # via -r requirements.in
-fastapi[standard]==0.140.7 \
-    --hash=sha256:09a640af2d29006345e1f28e4f031fa60f89b1a75d29f26070f3afa677d66cce \
-    --hash=sha256:960bb9696d8fd19dff488aa4f67f276364542cfcce9f7e68a82fe49dce126626
+fastapi[standard]==0.141.1 \
+    --hash=sha256:bfb91aa2d334c61cb35ba9a116fc123b3d3df31640b801cf57a7a78ec3f603b3 \
+    --hash=sha256:e8822fc40db1e1858054d7a949a888695bc9bdce70139178e33bd2871a453ca1
     # via -r requirements.in
 fastapi-cli[standard]==0.0.32 \
     --hash=sha256:38024d2345275e1b37ce8848727a580d84901b570e96b3256d9d36a9a5039424 \
@@ -910,9 +910,9 @@ jsonpointer==3.1.1 \
     --hash=sha256:0b801c7db33a904024f6004d526dcc53bbb8a4a0f4e32bfd10beadf60adf1900 \
     --hash=sha256:8ff8b95779d071ba472cf5bc913028df06031797532f08a7d5b602d8b2a488ca
     # via jsonpatch
-langchain-core==1.5.1 \
-    --hash=sha256:b0df382704c6403c1e0c9603415bce09290455d4aeeb38f350d15f78ca597483 \
-    --hash=sha256:c5ec8f51dd05124f950c9afd0fd8bb3f7be4e405eeb868d481b2f8ff652cb9d2
+langchain-core==1.5.3 \
+    --hash=sha256:48b56fa580277209594dd7baf837f5b9a2a3651613f34ff9fb1728b429df015f \
+    --hash=sha256:a56457ac444fef41e9404443c187f0ecea708d36e816ea4ba9573c027f7d1a2d
     # via
     #   -r requirements.in
     #   langchain-openai
@@ -930,9 +930,9 @@ langchain-protocol==0.0.18 \
     # via
     #   langchain-core
     #   langgraph-sdk
-langgraph==1.2.9 \
-    --hash=sha256:385f87bc1802c35af7e0aa479278ecba8582d103515eb48256cb2ddcd42d0bd4 \
-    --hash=sha256:c2d98ad94333937922ba04148641c1da2bfe45b5b8e55d7b6dcb0bb2df809e76
+langgraph==1.2.10 \
+    --hash=sha256:05a183a746ed570a06c7c1b879920163509a75df9e44e92dd2238218d677fd37 \
+    --hash=sha256:52c48bd42fa31a1de0e1c0f0ebfe342e11ca2957b8b3563f83dbd60d8e30f921
     # via -r requirements.in
 langgraph-checkpoint==4.1.1 \
     --hash=sha256:25d29144b082827218e7bc3f1e9b0566a4bb007895cd6cc26f66a8428739f56e \
@@ -1525,9 +1525,9 @@ pyyaml==6.0.3 \
     #   moto
     #   responses
     #   uvicorn
-redis==8.0.1 \
-    --hash=sha256:47daa35a058c23468d6437f17a8c76882cb316b838ef763036af99b96cedd743 \
-    --hash=sha256:afc5a7a2f5a084f5b1880dec548dd45be17db7e43c82a30d84f952aefb05cfb0
+redis==8.1.0 \
+    --hash=sha256:6e1a19beef9225c83efd689c7e6b7da2d5215b1f42cd13b7fc3714d0a09c7b25 \
+    --hash=sha256:a4fe1aac3d3b3cc791d4b3d5931c5a956045dc951ee74d1c913ee3ac4d2ee9fb
     # via
     #   -r requirements.in
     #   fakeredis
@@ -2108,9 +2108,9 @@ uuid-utils==0.17.0 \
     # via
     #   langchain-core
     #   langsmith
-uvicorn[standard]==0.51.0 \
-    --hash=sha256:5d38af6cd620f2ae3849fb44fd4879e0890aa1febe8d47eb355fb45d93fe6a5b \
-    --hash=sha256:f6f4b69b657c312f516dd2d268ab9ae6f254b11e4bac504f37b2ab58b24dd0b0
+uvicorn[standard]==0.52.1 \
+    --hash=sha256:112ec661814189acbccd3f7b86460147cc065fc92c0821afa78918780e4354dd \
+    --hash=sha256:e4403f9d93188cf9d1088e9f40e3acd12630e2df8675316704379a7fc20fff6a
     # via
     #   -r requirements.in
     #   fastapi
